@@ -1,0 +1,112 @@
+{
+  "project_title": "Gestione Pratiche e Note Open Fiber - GC Impianti SNC",
+  "app_type": "dashboard / internal utility tool",
+  "context": "Telecommunications field operations & office administration utility for Open Fiber practices managed by GC Impianti SNC. Built for instant PDF parsing, automated note composition, photo attachment per WR, one-click copy, direct Gmail dispatch with fixed recipients, and historical practice storage.",
+  "creator_credit": "creato e amministrato da Giuseppe Belviso",
+  "logos": {
+    "open_fiber": {
+      "url": "https://customer-assets-jai6qajn.emergentagent.net/job_ccf322e9-af2b-47ac-bdda-c765aa29fe4c/artifacts/hfc42618_Open_Fiber_logo.svg.png",
+      "alt": "Open Fiber Logo",
+      "style": "h-9 sm:h-11 w-auto object-contain"
+    },
+    "gc_impianti": {
+      "url": "https://customer-assets-jai6qajn.emergentagent.net/job_ccf322e9-af2b-47ac-bdda-c765aa29fe4c/artifacts/26fm2fx6_1682096608045.jpeg",
+      "alt": "GC Impianti SNC Logo",
+      "style": "h-9 sm:h-11 w-auto object-contain rounded border border-slate-200 shadow-sm"
+    }
+  },
+  "fixed_email_recipients": [
+    "g.c.impiantiufficio@gmail.com",
+    "g.c.impiantisnc4@gmail.com",
+    "giuseppe.abbatiscianni@circet.it",
+    "dario.naviglio@circet.it",
+    "vito.lalario@circet.it"
+  ],
+  "note_template": {
+    "structure": "WR:\nD\nOLO\nBA_ VIA  PTE-EST PFS PTE  TS TC D A MONO INT\nCPE:\n(ONT/SFP):",
+    "parsing_rule": "Parse single or multi-practice PDFs. Generate notes only for numeric WR codes. If WR contains letters, skip note generation per specification."
+  },
+  "theme": {
+    "mode": "light with high-contrast slate borders (with dark header option / theme toggle support)",
+    "primary_archetype": "THE PERFORMANCE PRO / UTILITY PRECISION",
+    "color_palette": {
+      "open_fiber_pink": "#E5007D",
+      "open_fiber_pink_hover": "#C9006D",
+      "gc_navy": "#0F172A",
+      "gc_red": "#DC2626",
+      "background_light": "#F8FAFC",
+      "card_bg": "#FFFFFF",
+      "slate_surface": "#F1F5F9",
+      "border_color": "#E2E8F0",
+      "text_dark": "#0F172A",
+      "text_muted": "#64748B",
+      "code_bg": "#1E293B",
+      "code_text": "#F8FAFC",
+      "success_green": "#16A34A",
+      "accent_blue": "#0284C7"
+    }
+  },
+  "typography": {
+    "font_families": {
+      "headings": "Outfit, Manrope, sans-serif",
+      "body": "Inter, IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, Roboto Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight",
+      "h2": "text-xl sm:text-2xl font-bold tracking-tight",
+      "h3": "text-lg sm:text-xl font-semibold",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "caption": "text-xs font-medium text-slate-500",
+      "mono_note": "text-xs sm:text-sm font-mono leading-snug"
+    }
+  },
+  "responsive": {
+    "breakpoint": "mobile-first",
+    "layout": "Mobile: stacked 1-column layout with full-width cards and touch-friendly controls. Tablet/Desktop: grid-cols-12 with persistent filters and side-by-side parsed note cards.",
+    "typography": "Mobile-optimized text sizes preventing horizontal scroll and automatic input zoom.",
+    "overflow_guard": "Use overflow-x-hidden on container and flex-wrap / break-words on code blocks.",
+    "tap_targets": "Minimum 44px height for interactive buttons, file uploader, and action triggers."
+  },
+  "key_components": [
+    {
+      "name": "Header & Administration Bar",
+      "description": "Displays GC Impianti SNC and Open Fiber logos, app title 'Gestione Pratiche & Note Open Fiber', subtitle 'creato e amministrato da Giuseppe Belviso', quick stats badges, and primary tab controls.",
+      "testid": "header-admin-bar"
+    },
+    {
+      "name": "PDF Pratica Upload Zone",
+      "description": "Drag-and-drop PDF dropzone supporting multi-practice or single-practice PDF files. Shows parsing progress, practice count, and status alerts.",
+      "testid": "pdf-upload-dropzone"
+    },
+    {
+      "name": "WR Note Card Editor",
+      "description": "Card for each numeric WR practice containing editable formatted note block, custom field inputs (Address, OLO, CPE, ONT/SFP serials), 'Copia nota' button, 'Invia tramite Gmail' mailto trigger, and multi-photo attachment section.",
+      "testid": "wr-note-card"
+    },
+    {
+      "name": "Photo Attachment Manager",
+      "description": "Multi-image file dropzone per WR card with grid thumbnail preview, image zoom/lightbox, and database persistence status.",
+      "testid": "photo-attachment-manager"
+    },
+    {
+      "name": "Gmail Dispatch Trigger",
+      "description": "Formulates mailto link containing pre-filled recipients (g.c.impiantiufficio@gmail.com, g.c.impiantisnc4@gmail.com, giuseppe.abbatiscianni@circet.it, dario.naviglio@circet.it, vito.lalario@circet.it), subject 'Pratica Open Fiber - WR: [WR_CODE]', and body containing formatted note text. Displays clear instruction popup to attach photos/PDF in Gmail if needed.",
+      "testid": "gmail-dispatch-button"
+    },
+    {
+      "name": "Storico Pratiche (Archive Table / Grid)",
+      "description": "Searchable archive of saved practices with filter by WR, date, client, or OLO. Provides edit mode, quick re-copy, re-send email, and photo download/viewing.",
+      "testid": "storico-pratiche-section"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Ensure all interactive elements have data-testid attributes (e.g. data-testid='upload-pdf-input', data-testid='copy-note-button', data-testid='send-gmail-button', data-testid='search-archive-input').",
+    "Implement full functionality for client-side and backend parsing of Open Fiber PDFs, extracting numeric WRs, addresses, OLOs, and customer data.",
+    "Ensure numeric WR filtering logic: if a WR code contains letters (e.g., 'WR1234A'), skip note creation as specified.",
+    "Preset exact email recipients: g.c.impiantiufficio@gmail.com, g.c.impiantisnc4@gmail.com, giuseppe.abbatiscianni@circet.it, dario.naviglio@circet.it, vito.lalario@circet.it in mailto href string.",
+    "Include toast notifications using Sonner when 'Copia nota' is clicked ('Nota copiata negli appunti!').",
+    "Persist practices and uploaded photos in the SQLite database and allow modification in the Storico section.",
+    "Maintain high accessibility contrast, clean card elevation, crisp monospace code editors for notes, and smooth micro-animations."
+  ]
+}

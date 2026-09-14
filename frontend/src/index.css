@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #F8FAFC;
+    color: #0F172A;
+}
+
+h1, h2, h3, .font-display {
+    font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.font-mono, code, pre, .code {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+}
+
+@layer base {
+    :root {
+        --background: 210 40% 98%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 328 100% 45%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 328 100% 45%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+.brand-pink {
+    color: #E5007D;
+}
+.bg-brand-pink {
+    background-color: #E5007D;
+}
+.brand-navy {
+    color: #0F172A;
+}
+
+.note-block {
+    font-family: 'JetBrains Mono', monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #0F172A;
+    color: #F8FAFC;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    border: 1px solid #1E293B;
+}
+
+.dropzone {
+    transition: all .18s ease;
+    border: 2px dashed #CBD5E1;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #F1F5F9 100%);
+}
+.dropzone.drag {
+    border-color: #E5007D;
+    background: #FDF2F8;
+}
+
+.btn-primary {
+    background: #E5007D;
+    color: white;
+    transition: background .18s ease, transform .06s ease;
+}
+.btn-primary:hover { background: #C9006D; }
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-ghost {
+    transition: background .18s ease;
+}
+
+.card-shadow {
+    box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 8px 24px -12px rgba(15,23,42,0.08);
+}
+
+.wr-badge {
+    background: #FDF2F8;
+    color: #9D174D;
+    border: 1px solid #FBCFE8;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.stagger-in {
+    animation: fadeUp .35s ease both;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.photo-thumb {
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #E2E8F0;
+    background: #F1F5F9;
+}

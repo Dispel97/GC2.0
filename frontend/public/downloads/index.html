@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download GC Impianti</title>
+<style>
+  :root { --pink:#ec4899; --slate:#0f172a; --slate2:#64748b; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--slate); padding:20px; max-width:760px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  p.sub { color:var(--slate2); margin:0 0 20px; font-size:14px; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
+  .card h2 { font-size:16px; margin:0 0 6px; display:flex; align-items:center; gap:8px; }
+  .card p { color:var(--slate2); font-size:13px; margin:0 0 12px; line-height:1.5; }
+  .card ol { color:var(--slate2); font-size:13px; margin:8px 0 14px; padding-left:20px; line-height:1.6; }
+  .card ol strong { color:var(--slate); }
+  .btn { display:inline-flex; align-items:center; gap:8px; background:var(--pink); color:#fff; padding:10px 16px; border-radius:999px; text-decoration:none; font-weight:600; font-size:14px; border:none; cursor:pointer; margin-right:6px; margin-bottom:6px; }
+  .btn:hover { background:#db2777; }
+  .btn.secondary { background:var(--slate); }
+  .btn.secondary:hover { background:#1e293b; }
+  .btn.outline { background:#fff; color:var(--slate); border:1px solid #e2e8f0; }
+  .btn.outline:hover { background:#f1f5f9; }
+  .badge { background:#fdf2f8; color:#be185d; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .badge.new { background:#dcfce7; color:#166534; }
+  .size { color:#94a3b8; font-size:11px; margin-left:6px; }
+  code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px; }
+  .url { background:#0f172a; color:#fbcfe8; padding:8px 10px; border-radius:8px; font-family:monospace; font-size:12px; word-break:break-all; margin:8px 0; }
+</style>
+</head>
+<body>
+  <h1>📦 Download GC Impianti</h1>
+  <p class="sub">Pacchetti pronti per hosting, versione PWA/APK e guide di migrazione.</p>
+
+  <div class="card">
+    <h2>📱 App PWA installabile <span class="badge new">NOVITÀ</span></h2>
+    <p>
+      La versione offline ora è una <strong>PWA (Progressive Web App)</strong> con icona, splash screen e funzionamento offline completo.
+      Si installa sulla home dello smartphone come una vera app, senza passare dal Play Store.
+    </p>
+    <ol>
+      <li><strong>Uploadalo su hosting statico</strong> (Cloudflare Pages, Netlify, GitHub Pages) — o usa il link qui sotto</li>
+      <li>Apri il link dal telefono con <strong>Chrome</strong> (Android) o <strong>Safari</strong> (iPhone)</li>
+      <li>Menu del browser → <strong>"Aggiungi alla schermata Home"</strong> / <strong>"Installa app"</strong></li>
+      <li>Sulla home appare l'icona rosa "GC Impianti" — tappala e usa come app normale, anche offline!</li>
+    </ol>
+    <a class="btn" href="/downloads/gc-impianti-pwa.zip" download>⬇️ Scarica PWA (.zip)<span class="size">852 KB</span></a>
+    <a class="btn secondary" href="/downloads/pwa/">👀 Prova al volo</a>
+  </div>
+
+  <div class="card">
+    <h2>🤖 Vuoi un vero APK Android?</h2>
+    <p>
+      Usa <strong>PWABuilder.com</strong> (gratis, di Microsoft) per generare un <code>.apk</code> firmato da caricare sul telefono o pubblicare sul Play Store.
+    </p>
+    <ol>
+      <li>Uploada prima la PWA (zip qui sopra) su hosting statico gratuito (Cloudflare Pages consigliato)</li>
+      <li>Vai su <strong>pwabuilder.com</strong>, incolla l'URL della tua PWA pubblicata</li>
+      <li>Analizza → <strong>Package for stores</strong> → <strong>Android</strong> → <strong>Generate</strong></li>
+      <li>Scarica il file <code>.apk</code> (funziona su tutti gli Android moderni)</li>
+      <li>Passalo al telefono e installa (potresti dover abilitare "origini sconosciute")</li>
+    </ol>
+    <a class="btn secondary" href="https://www.pwabuilder.com/" target="_blank" rel="noopener">🚀 Vai a PWABuilder.com</a>
+  </div>
+
+  <div class="card">
+    <h2>🌐 Frontend Online (build statica)</h2>
+    <p>
+      Contiene tutti i file HTML+JS+CSS della versione online completa (con Magazzino, Notifiche, Storico, Tag liberi).
+      Uploadalo su hosting statico e collegalo al backend FastAPI. Prima di uploadare, imposta la env var <code>REACT_APP_BACKEND_URL</code> sull'URL del tuo backend.
+    </p>
+    <a class="btn" href="/downloads/gc-impianti-frontend-online.zip" download>⬇️ Scarica build online (.zip)<span class="size">2 MB</span></a>
+  </div>
+
+  <div class="card">
+    <h2>📄 HTML offline (singolo file)</h2>
+    <p>
+      Versione precedente con tutte le librerie inlinate. Non è una PWA, ma funziona aprendo il file direttamente sul telefono (senza server).
+    </p>
+    <a class="btn outline" href="/downloads/standalone_offline.html" download>⬇️ Scarica HTML singolo<span class="size">2.6 MB</span></a>
+    <a class="btn outline" href="/standalone_offline.html">👀 Prova al volo</a>
+  </div>
+
+  <div class="card">
+    <h2>📘 Guide di migrazione</h2>
+    <p>Documenti pronti per portare l'app fuori da Emergent.</p>
+    <a class="btn" href="/downloads/EXPORT_GITHUB.md" download>🐙 Esporta su GitHub (guida rapida)</a>
+    <a class="btn secondary" href="/downloads/MIGRAZIONE_SMARTPHONE.md" download>📱 Guida da smartphone</a>
+    <a class="btn secondary" href="/downloads/MIGRATION.md" download>🖥️ Guida tecnica completa</a>
+  </div>
+
+  <p class="sub" style="text-align:center; margin-top:20px; font-size:12px;">
+    GC Impianti · v12 · Feb 2026
+  </p>
+</body>
+</html>
