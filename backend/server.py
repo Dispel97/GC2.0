@@ -1746,7 +1746,7 @@ class InstructionUpdate(BaseModel):
 
 @api_router.get("/instructions")
 async def list_instructions(user: dict = Depends(get_current_user)):
-    docs = await db.instructions.find({}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    docs = await db.instructions.find({}, {"_id": 0}).sort([("order", 1), ("created_at", 1)]).to_list(1000)
     return docs
 
 
@@ -1756,10 +1756,13 @@ async def create_instruction(req: InstructionCreate, admin: dict = Depends(get_c
     if not title:
         raise HTTPException(status_code=400, detail="Titolo richiesto")
     now = datetime.now(timezone.utc).isoformat()
+    order = await db.instructions.count_documents({})
     doc = {
         "id": str(uuid.uuid4()),
         "title": title,
         "description": (req.description or "").strip(),
+        "images": [],
+        "order": order,
         "created_by": admin.get("email", ""),
         "created_at": now,
         "updated_at": now,
@@ -1787,6 +1790,54 @@ async def update_instruction(iid: str, req: InstructionUpdate, admin: dict = Dep
 async def delete_instruction(iid: str, admin: dict = Depends(get_current_admin)):
     res = await db.instructions.delete_one({"id": iid})
     return {"deleted": res.deleted_count}
+
+
+class InstructionReorder(BaseModel):
+    ids: List[str]
+
+
+@api_router.post("/instructions/reorder")
+async def reorder_instructions(req: InstructionReorder, admin: dict = Depends(get_current_admin)):
+    now = datetime.now(timezone.utc).isoformat()
+    for idx, iid in enumerate(req.ids):
+        await db.instructions.update_one({"id": iid}, {"$set": {"order": idx, "updated_at": now}})
+    return {"ok": True, "count": len(req.ids)}
+
+
+@api_router.post("/instructions/{iid}/image")
+async def upload_instruction_image(iid: str, file: UploadFile = File(...),
+                                   admin: dict = Depends(get_current_admin)):
+    doc = await db.instructions.find_one({"id": iid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Riquadro non trovato")
+    ct = (file.content_type or "").lower()
+    if not ct.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Il file deve essere un'immagine")
+    ext = (file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "jpg").lower()
+    path = f"{APP_NAME}/instructions/{iid}/{uuid.uuid4()}.{ext}"
+    data = await file.read()
+    put_object(path, data, ct or "image/jpeg")
+    img = {"id": str(uuid.uuid4()), "storage_path": path,
+           "filename": file.filename or "immagine", "content_type": ct or "image/jpeg"}
+    images = doc.get("images", []) + [img]
+    await db.instructions.update_one(
+        {"id": iid},
+        {"$set": {"images": images, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"images": images}
+
+
+@api_router.delete("/instructions/{iid}/image/{img_id}")
+async def delete_instruction_image(iid: str, img_id: str, admin: dict = Depends(get_current_admin)):
+    doc = await db.instructions.find_one({"id": iid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Riquadro non trovato")
+    images = [im for im in doc.get("images", []) if im.get("id") != img_id]
+    await db.instructions.update_one(
+        {"id": iid},
+        {"$set": {"images": images, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"images": images}
 
 
 app.include_router(api_router)

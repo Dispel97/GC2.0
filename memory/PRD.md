@@ -16,6 +16,12 @@ Web app che automatizza la generazione delle note tecniche OpenFiber a partire d
 
 ## Implemented (as of 12 Feb 2026)
 
+### Iteration 20 (14 Jun 2026) — Ristrutturazione note + auto-sync + Istruzioni immagini/riordino
+- **Rimosso tasto "Scansiona seriale"** dalle azioni della nota (non più necessario).
+- **Auto-sync su Espletato**: cliccando "Espletato", se la nota ha CPE/ONT, chiama automaticamente `POST /notes/{id}/sync` col magazzino; il tasto "Sincronizza magazzino" resta come fallback di sicurezza.
+- **Note: gerarchia Mese > Giorno > Note** (3 livelli comprimibili). Rimossa la sezione "Espletati" separata e il toggle globale "Aggrega note". Le note espletate restano nel loro giorno ma vanno **in fondo alla lista del giorno**. Ogni giorno ha una freccia (`day-toggle-<data>`) per comprimere/espandere le sue note; ogni mese è una cartella (`month-folder-<YYYY-MM>`), mese corrente aperto di default.
+- **Istruzioni Configurazioni**: gli admin possono **allegare immagini** ai riquadri (upload/elimina, `POST/DELETE /api/instructions/{id}/image`) e **riordinare i riquadri con drag-and-drop** (`POST /api/instructions/reorder`, campo `order` persistente). Tecnici in sola lettura.
+
 ### Iteration 19 (14 Jun 2026) — 7 modifiche GCgestionale (import da GitHub Dispel97/GCgestionale)
 - **#5 Rinomina nav**: etichetta barra in alto "Note" → "Tecnico" (solo label, `data-testid='nav-notes'`).
 - **#3 BUGFIX redirect modifica nota**: `fetchNotes` in `AppContent` ora usa un `initialLoad` ref e NON attiva lo spinner full-page sui refetch in background → salvando una nota (PATCH) la lista non viene smontata, scroll e stato card preservati. Verificato dall'agente di test (100%).

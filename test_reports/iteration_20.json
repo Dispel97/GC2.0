@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 20 fully verified end-to-end. Backend 6/6 passed; Frontend all requested flows PASS. (A) scan-serial button absent from note actions; copy/gmail/sync/edit/delete still present. (B) Auto-sync on Espletato: clicked status-espletato-17423703 with cpe set → BOTH toasts fired ('Nota espletata' + 'Sincronizzati automaticamente') and SYNC ✓ badge appeared on the card. Manual sync-note button still present as fallback. (C) MONTH>DAY>NOTE hierarchy verified: month-folder-2026-09 + month-toggle-2026-09 present and expanded by default; day-toggle-2026-09-14 collapses (notes hidden 5→0) and re-expands (0→5); WR 17396958 (espletato) sits at position 5/5 in day (last, after 4 limbo notes); legacy testids toggle-espletati / espletati-section / toggle-aggregate / expand-notes-bottom / espletati-list all absent. (D) Instructions admin: image upload via instruction-img-add-<id> works (image appears in instruction-images-<id>), removal via instruction-img-remove-<imgId> works; drag-and-drop reorder via HTML5 drag_to actually persisted new order (API GET reflected reversed [B,A] after dragging A onto B, toast 'Ordine aggiornato'); technician sees NO add/edit/delete/img-add/img-remove controls (all counts=0). Regression: note edit + save keeps user on list (card in DOM, no full-page spinner, minimal scroll change from edit collapse only).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter20_modifications.py",
+    "/app/test_reports/pytest/iter20.xml"
+  ],
+  "action_items": [
+    "Minor: /app/frontend/src/App.js line 1278 still contains suggestion text 'Scansiona seriale apre la fotocamera...' although the button has been removed — consider updating the suggestion string to avoid user confusion.",
+    "Minor: POST /api/notes is not implemented (405 Method Not Allowed); notes can only be created via PDF upload. Test used PATCH on existing seeded note WR 17423703 to add a test CPE for the auto-sync flow. State side-effect: WR 17423703 has now been set to espletato with cpe='TESTCPE_UI_001' (from UI test) — the backend test restored its state but the UI test did not. Main agent may want to re-seed if this note's original state matters.",
+    "Nice-to-have: add login-email/login-password/login-submit data-testids (still missing from previous iteration)."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/App.js is now 3097 lines — still recommend splitting NoteCard, InstructionsPage, AppContent notes-groups rendering into separate modules.",
+    "InstructionsPage.onDrop reorders local state and only calls /reorder API; on failure it reloads (good) but no optimistic rollback message beyond the toast — minor UX.",
+    "Auto-sync in NoteCard.setStatus swallows errors silently with only toast.message; consider toast.warning for visibility.",
+    "DELETE /api/instructions/{iid} still returns {deleted: 0} instead of 404 for missing ids (inherited from iter19, not fixed)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter20_modifications.py"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin giuseppe97belviso@gmail.com / Mucchetta4! ; tech tecnico.test@gc.it / Test1234!",
+  "seed_data_creation": "Created 2 test instruction cards (TEST_UI_ITER20_A/B), both cleaned up after test. Note WR 17423703 was modified (cpe set + status espletato) during UI auto-sync test and NOT restored — main agent may want to reset it if needed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 4 iteration-20 modifications (A/B/C/D) verified. Testids: notes-groups, month-folder-<YYYY-MM>, month-toggle-<YYYY-MM>, day-group-<date>, day-toggle-<date>, status-espletato-<wr>, sync-note-<wr>, instruction-card-<id>, instruction-img-add-<id>, instruction-images-<id>, instruction-img-remove-<imgId>. Legacy testids removed: toggle-espletati, espletati-section, toggle-aggregate, expand-notes-bottom. Backend endpoints new/changed: GET /api/instructions (sort by order), POST /api/instructions/reorder, POST/DELETE /api/instructions/{id}/image[/{imgId}] — admin-only (403 for tech). Auto-sync on espletato calls POST /api/notes/{id}/sync when cpe or ont_sfp is set."
+}

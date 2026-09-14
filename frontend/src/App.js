@@ -6,7 +6,7 @@ import {
   Loader2, Search, ChevronDown, ChevronUp, Save, X, Camera, RotateCcw,
   LogOut, Shield, UserCheck, UserX, Users, ScanLine, LogIn, UserPlus,
   Package, RefreshCw, Calendar, CheckCircle2, PauseCircle, Warehouse,
-  Bell, History, Zap, ZapOff, Download, Edit3, BookOpen, Plus,
+  Bell, History, Zap, ZapOff, Download, Edit3, BookOpen, Plus, ChevronRight, Folder, GripVertical,
 } from "lucide-react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import JsBarcode from "jsbarcode";
@@ -1170,6 +1170,12 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
       await axios.patch(`${API}/notes/${note.id}`, { note_type: newStatus, status: newStatus, suspend_reason: reason });
       const labels = { espletato: "Nota espletata", sospeso: "Nota sospesa (esclusa dalla media)", guasto: "Nota marcata come guasto", migrazione: "Nota marcata come migrazione" };
       toast.success(labels[newStatus] || "Stato aggiornato");
+      if (newStatus === "espletato" && (note.cpe || note.ont_sfp)) {
+        try {
+          const r = await axios.post(`${API}/notes/${note.id}/sync`);
+          if (r.data?.synced) toast.success(`Sincronizzati automaticamente ${r.data.synced} seriale/i col magazzino`);
+        } catch (_) { toast.message("Sync magazzino non riuscito — usa il tasto Sincronizza magazzino"); }
+      }
       onChanged?.();
     } catch (e) { toast.error(errorText(e)); }
   };
@@ -1254,9 +1260,6 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
             <button onClick={syncNote} className="rounded-full px-3 py-2 text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 inline-flex items-center gap-2" data-testid={`sync-note-${note.wr}`}>
               <RefreshCw size={14} /> Sincronizza magazzino
             </button>
-            <button onClick={() => onOpenScanner(applyScan, lastField)} className="rounded-full px-3 py-2 text-xs font-semibold bg-brand-pink/10 text-brand-pink brand-pink inline-flex items-center gap-2 hover:bg-brand-pink/20" data-testid={`scan-serial-${note.wr}`}>
-              <ScanLine size={14} /> Scansiona {lastField === "cpe" ? "→ CPE" : lastField === "ont_sfp" ? "→ ONT/SFP" : "seriale"}
-            </button>
             {note.pdf_storage_path ? (
               <a href={`${API}/files?path=${encodeURIComponent(note.pdf_storage_path)}`} target="_blank" rel="noopener noreferrer"
                 className="rounded-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-800 inline-flex items-center gap-2 hover:bg-slate-200">
@@ -1272,7 +1275,7 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
           </div>
 
           <div className="mt-2 text-[11px] text-slate-500 leading-relaxed">
-            <strong>Suggerimento:</strong> "Scansiona seriale" apre la fotocamera per leggere codici a barre/QR del modem. "Scatta foto" apre la fotocamera per allegare foto alla nota.
+            <strong>Suggerimento:</strong> "Espletato" sincronizza automaticamente i seriali (CPE/ONT) col magazzino. "Scatta foto" apre la fotocamera per allegare foto alla nota.
           </div>
 
           {/* Dati privati SEMPRE visibili e completamente leggibili (non finiscono nella nota) */}
@@ -1465,6 +1468,12 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
 
 // ---------- Stats Panel ----------
 const DAILY_TARGET = 4;
+
+const monthKeyOf = (iso) => localDateKey(iso).slice(0, 7);
+const monthLabel = (mk) => {
+  const [y, m] = mk.split("-");
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleString("it-IT", { month: "long", year: "numeric" });
+};
 
 function localDateKey(iso) {
   try {
@@ -2678,48 +2687,6 @@ function RecipientsEditor() {
   );
 }
 
-// ---------- Sezione Espletati separata (#2) ----------
-function EspletatiSection({ notes, show, onToggle, lastCreatedIds, fetchNotes, selectedIds, toggleSelect, openScanner }) {
-  const groups = notes.reduce((acc, n) => {
-    const k = localDateKey(n.created_at);
-    (acc[k] = acc[k] || []).push(n);
-    return acc;
-  }, {});
-  const keys = Object.keys(groups).sort().reverse();
-  return (
-    <section className="mt-8" data-testid="espletati-section">
-      <button onClick={onToggle} className="w-full flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 hover:bg-emerald-100 transition" data-testid="toggle-espletati">
-        <CheckCircle2 size={16} className="text-emerald-600" />
-        <span className="text-sm font-bold text-emerald-800">Espletati</span>
-        <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5" data-testid="espletati-count">{notes.length}</span>
-        <span className="ml-auto text-emerald-700">{show ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
-      </button>
-      {show && (
-        <div className="mt-3 space-y-6" data-testid="espletati-list">
-          {keys.length === 0 ? (
-            <div className="border border-dashed border-emerald-200 rounded-2xl p-6 text-center text-emerald-700/70 text-sm bg-emerald-50/40" data-testid="espletati-empty">Nessuna nota espletata.</div>
-          ) : keys.map((k) => (
-            <div key={k} data-testid={`espletati-day-${k}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="text-xs font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">{humanDate(k)}</div>
-                <div className="text-xs font-semibold text-emerald-600">{groups[k].length} espletate</div>
-                <div className="flex-1 h-px bg-slate-100" />
-              </div>
-              <div className="space-y-3">
-                {groups[k].map((n) => (
-                  <NoteCard key={n.id} note={n} defaultOpen={false}
-                    onChanged={fetchNotes} selected={selectedIds.includes(n.id)} onToggleSelect={toggleSelect}
-                    onOpenScanner={openScanner} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 // ---------- Pagina Istruzioni Configurazioni (#6) ----------
 function InstructionsPage() {
   const { user } = useAuth();
@@ -2730,6 +2697,8 @@ function InstructionsPage() {
   const [form, setForm] = useState({ title: "", description: "" });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", description: "" });
+  const [dragIndex, setDragIndex] = useState(null);
+  const [uploadingId, setUploadingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2754,6 +2723,29 @@ function InstructionsPage() {
     if (!window.confirm("Eliminare questo riquadro?")) return;
     try { await axios.delete(`${API}/instructions/${id}`); toast.success("Riquadro eliminato"); load(); }
     catch (e) { toast.error(errorText(e)); }
+  };
+  const uploadImage = async (id, file) => {
+    if (!file) return;
+    setUploadingId(id);
+    try {
+      const fd = new FormData(); fd.append("file", file);
+      await axios.post(`${API}/instructions/${id}/image`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      toast.success("Immagine aggiunta"); load();
+    } catch (e) { toast.error(errorText(e)); }
+    finally { setUploadingId(null); }
+  };
+  const removeImage = async (id, imgId) => {
+    try { await axios.delete(`${API}/instructions/${id}/image/${imgId}`); load(); }
+    catch (e) { toast.error(errorText(e)); }
+  };
+  const onDrop = async (targetIdx) => {
+    if (dragIndex === null || dragIndex === targetIdx) { setDragIndex(null); return; }
+    const reordered = [...items];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(targetIdx, 0, moved);
+    setItems(reordered); setDragIndex(null);
+    try { await axios.post(`${API}/instructions/reorder`, { ids: reordered.map((x) => x.id) }); toast.success("Ordine aggiornato"); }
+    catch (e) { toast.error(errorText(e)); load(); }
   };
 
   return (
@@ -2785,8 +2777,14 @@ function InstructionsPage() {
         <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-500 text-sm bg-white" data-testid="instructions-empty">Nessuna istruzione disponibile.</div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4" data-testid="instructions-grid">
-          {items.map((it) => (
-            <section key={it.id} className="bg-white border border-slate-200 rounded-2xl card-shadow p-4 sm:p-5" data-testid={`instruction-card-${it.id}`}>
+          {items.map((it, idx) => (
+            <section key={it.id}
+              draggable={isAdmin && editId !== it.id}
+              onDragStart={() => setDragIndex(idx)}
+              onDragOver={(e) => { if (isAdmin) e.preventDefault(); }}
+              onDrop={() => onDrop(idx)}
+              className={`bg-white border rounded-2xl card-shadow p-4 sm:p-5 ${dragIndex === idx ? "border-brand-pink ring-2 ring-brand-pink/30" : "border-slate-200"} ${isAdmin && editId !== it.id ? "cursor-move" : ""}`}
+              data-testid={`instruction-card-${it.id}`}>
               {editId === it.id ? (
                 <div className="space-y-3">
                   <input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-pink" data-testid={`instruction-edit-title-${it.id}`} />
@@ -2799,7 +2797,10 @@ function InstructionsPage() {
               ) : (
                 <>
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-base font-display font-bold text-slate-900">{it.title}</h3>
+                    <h3 className="text-base font-display font-bold text-slate-900 inline-flex items-center gap-2">
+                      {isAdmin && <GripVertical size={15} className="text-slate-300 shrink-0" title="Trascina per riordinare" />}
+                      <span>{it.title}</span>
+                    </h3>
                     {isAdmin && (
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => startEdit(it)} className="text-slate-500 hover:text-brand-pink p-1" data-testid={`instruction-edit-${it.id}`}><Edit3 size={15} /></button>
@@ -2808,6 +2809,26 @@ function InstructionsPage() {
                     )}
                   </div>
                   <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{it.description || <span className="text-slate-400 italic">Nessuna descrizione</span>}</p>
+                  {(it.images?.length > 0) && (
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid={`instruction-images-${it.id}`}>
+                      {it.images.map((img) => (
+                        <div key={img.id} className="relative group">
+                          <a href={`${API}/files?path=${encodeURIComponent(img.storage_path)}`} target="_blank" rel="noopener noreferrer">
+                            <img src={`${API}/files?path=${encodeURIComponent(img.storage_path)}`} alt={img.filename || "immagine"} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                          </a>
+                          {isAdmin && (
+                            <button onClick={() => removeImage(it.id, img.id)} className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition" data-testid={`instruction-img-remove-${img.id}`}><X size={12} /></button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isAdmin && (
+                    <label className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full px-3 py-1.5 cursor-pointer" data-testid={`instruction-img-add-${it.id}`}>
+                      {uploadingId === it.id ? <Loader2 className="animate-spin" size={13} /> : <ImageIcon size={13} />} Aggiungi immagine
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; uploadImage(it.id, f); }} />
+                    </label>
+                  )}
                 </>
               )}
             </section>
@@ -2832,8 +2853,8 @@ function AppContent() {
   const [scanner, setScanner] = useState(null); // { onScan }
   const [scanTarget, setScanTarget] = useState(null);
   const [page, setPage] = useState(user?.role === "magazzino" ? "warehouse" : "notes");
-  const [aggregated, setAggregated] = useState(false);
-  const [showEspletati, setShowEspletati] = useState(false);
+  const [openMonths, setOpenMonths] = useState(null); // Set of open month keys; null => default (current month only)
+  const [closedDays, setClosedDays] = useState(() => new Set()); // day keys explicitly collapsed
   const [recipients, setRecipients] = useState(RECIPIENTS);
   const initialLoad = useRef(true);
 
@@ -2845,8 +2866,20 @@ function AppContent() {
     return true;
   });
   const isEspletato = (n) => (n.note_type || n.status || "limbo") === "espletato";
-  const mainNotes = filteredNotes.filter((n) => !isEspletato(n));
-  const espletatiNotes = filteredNotes.filter(isEspletato);
+
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const isMonthOpen = (mk) => (openMonths ? openMonths.has(mk) : mk === currentMonthKey);
+  const toggleMonth = (mk) => setOpenMonths((prev) => {
+    const base = new Set(prev ? prev : [currentMonthKey]);
+    if (base.has(mk)) base.delete(mk); else base.add(mk);
+    return base;
+  });
+  const isDayOpen = (dk) => !closedDays.has(dk);
+  const toggleDay = (dk) => setClosedDays((prev) => {
+    const s = new Set(prev);
+    if (s.has(dk)) s.delete(dk); else s.add(dk);
+    return s;
+  });
 
   // Fix #3: don't unmount the list on background refetch (preserves scroll & card state)
   const fetchNotes = useCallback(async () => {
@@ -2936,13 +2969,7 @@ function AppContent() {
         <section>
           <div className="flex flex-wrap items-center gap-3 mb-3">
             <h2 className="text-lg sm:text-xl font-display font-bold text-slate-900">Note</h2>
-            <span className="text-xs text-slate-500">{mainNotes.length} / {notes.length}</span>
-            <button onClick={() => setAggregated((v) => !v)}
-              title={aggregated ? "Espandi tutte le note" : "Aggrega note (mostra solo le date)"}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full px-2.5 py-1.5 transition"
-              data-testid="toggle-aggregate">
-              {aggregated ? <><ChevronDown size={14} /> Espandi</> : <><ChevronUp size={14} /> Aggrega</>}
-            </button>
+            <span className="text-xs text-slate-500">{filteredNotes.length} note</span>
             <div className="ml-auto flex gap-2 flex-wrap items-center">
               <div className="inline-flex items-center gap-1 text-xs text-slate-500">
                 <Calendar size={14} />
@@ -2963,7 +2990,7 @@ function AppContent() {
             </div>
           </div>
 
-          {mainNotes.length > 0 && (
+          {filteredNotes.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
               <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
                 <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 rounded border-slate-300 accent-pink-600" data-testid="select-all-checkbox" />
@@ -2980,55 +3007,69 @@ function AppContent() {
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-500 text-sm p-6"><Loader2 className="animate-spin" size={16} /> Caricamento…</div>
-          ) : mainNotes.length === 0 ? (
+          ) : filteredNotes.length === 0 ? (
             <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-500 text-sm bg-white" data-testid="empty-state">
               {notes.length === 0 ? "Nessuna nota. Carica un PDF Open Fiber per iniziare." : "Nessuna nota nel range selezionato."}
             </div>
           ) : (
-            <>
-            <div className="space-y-6" data-testid="notes-groups">
+            <div className="space-y-4" data-testid="notes-groups">
               {(() => {
-                const groups = mainNotes.reduce((acc, n) => {
-                  const k = localDateKey(n.created_at);
-                  (acc[k] = acc[k] || []).push(n);
-                  return acc;
-                }, {});
-                const keys = Object.keys(groups).sort().reverse();
-                return keys.map((k) => (
-                  <div key={k} data-testid={`day-group-${k}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="text-xs font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">{humanDate(k)}</div>
-                      <div className={`text-xs font-semibold ${groups[k].length >= DAILY_TARGET ? "text-emerald-600" : "text-slate-500"}`}>{groups[k].length} note</div>
-                      <div className="flex-1 h-px bg-slate-100" />
+                const months = {};
+                filteredNotes.forEach((n) => {
+                  const mk = monthKeyOf(n.created_at);
+                  (months[mk] = months[mk] || []).push(n);
+                });
+                const mkeys = Object.keys(months).sort().reverse();
+                return mkeys.map((mk) => {
+                  const monthNotes = months[mk];
+                  const mopen = isMonthOpen(mk);
+                  const days = {};
+                  monthNotes.forEach((n) => {
+                    const dk = localDateKey(n.created_at);
+                    (days[dk] = days[dk] || []).push(n);
+                  });
+                  const dkeys = Object.keys(days).sort().reverse();
+                  return (
+                    <div key={mk} className="border border-slate-200 rounded-2xl bg-white overflow-hidden" data-testid={`month-folder-${mk}`}>
+                      <button onClick={() => toggleMonth(mk)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition" data-testid={`month-toggle-${mk}`}>
+                        <Folder size={18} className="text-brand-pink brand-pink" />
+                        <span className="text-sm font-display font-bold text-slate-900 capitalize">{monthLabel(mk)}</span>
+                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">{monthNotes.length}</span>
+                        <span className="ml-auto text-slate-400">{mopen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span>
+                      </button>
+                      {mopen && (
+                        <div className="px-3 sm:px-4 pb-4 space-y-4 border-t border-slate-100 pt-3">
+                          {dkeys.map((dk) => {
+                            const dayNotes = [...days[dk]].sort((a, b) => (isEspletato(a) ? 1 : 0) - (isEspletato(b) ? 1 : 0));
+                            const dopen = isDayOpen(dk);
+                            return (
+                              <div key={dk} data-testid={`day-group-${dk}`}>
+                                <button onClick={() => toggleDay(dk)} className="w-full flex items-center gap-2 mb-2 group" data-testid={`day-toggle-${dk}`}>
+                                  <span className="text-slate-400 group-hover:text-slate-700">{dopen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
+                                  <div className="text-xs font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">{humanDate(dk)}</div>
+                                  <div className={`text-xs font-semibold ${days[dk].length >= DAILY_TARGET ? "text-emerald-600" : "text-slate-500"}`}>{days[dk].length} note</div>
+                                  <div className="flex-1 h-px bg-slate-100" />
+                                </button>
+                                {dopen && (
+                                  <div className="space-y-3">
+                                    {dayNotes.map((n) => (
+                                      <NoteCard key={n.id} note={n} defaultOpen={lastCreatedIds.includes(n.id)}
+                                        onChanged={fetchNotes} selected={selectedIds.includes(n.id)} onToggleSelect={toggleSelect}
+                                        onOpenScanner={openScanner} />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {!aggregated && (
-                      <div className="space-y-3">
-                        {groups[k].map((n) => (
-                          <NoteCard key={n.id} note={n} defaultOpen={lastCreatedIds.includes(n.id)}
-                            onChanged={fetchNotes} selected={selectedIds.includes(n.id)} onToggleSelect={toggleSelect}
-                            onOpenScanner={openScanner} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ));
+                  );
+                });
               })()}
             </div>
-            {aggregated && (
-              <div className="mt-4 flex justify-center">
-                <button onClick={() => setAggregated(false)}
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-white btn-primary rounded-full px-4 py-2"
-                  data-testid="expand-notes-bottom">
-                  <ChevronDown size={14} /> Espandi tutte le note
-                </button>
-              </div>
-            )}
-            </>
           )}
-
-          <EspletatiSection notes={espletatiNotes} show={showEspletati} onToggle={() => setShowEspletati((v) => !v)}
-            lastCreatedIds={lastCreatedIds} fetchNotes={fetchNotes} selectedIds={selectedIds}
-            toggleSelect={toggleSelect} openScanner={openScanner} />
         </section>
       </main>
       )}
