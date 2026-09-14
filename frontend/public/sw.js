@@ -1,5 +1,5 @@
 // Service Worker per GC Impianti PWA offline
-const CACHE = "gc-impianti-v1";
+const CACHE = "gc-impianti-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -26,6 +26,16 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  const url = new URL(e.request.url);
+
+  // Mai mettere in cache le chiamate all'API: servono sempre dati freschi dal server
+  const isApiCall = url.pathname.startsWith("/api/") || url.hostname !== self.location.hostname;
+  if (isApiCall) {
+    e.respondWith(fetch(e.request).catch(() => new Response("Offline", { status: 503 })));
+    return;
+  }
+
+  // Solo per i file statici del sito: cache-first con fallback alla rete
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
