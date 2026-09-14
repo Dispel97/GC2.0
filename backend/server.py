@@ -1294,6 +1294,37 @@ async def sync_note_serials(note_id: str, user: dict = Depends(get_current_user)
     return {"synced": updates_count, "note": fresh}
 
 
+@api_router.post("/notes/{note_id}/unsync")
+async def unsync_note_serials(note_id: str, user: dict = Depends(get_current_user)):
+    """Annulla la sincronizzazione: ripristina i seriali scaricati da questa nota
+    (status → assegnato/in_stock) e segna la nota come non sincronizzata."""
+    doc = await _get_own_note(note_id, user)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    display_name = user.get("name") or user.get("email") or user.get("id")
+    restored = []
+    async for s in db.serials.find({"downloaded_note_id": note_id, "status": "scaricato"}, {"_id": 0}):
+        new_status = "assegnato" if s.get("assigned_to_user_id") else "in_stock"
+        await db.serials.update_one({"id": s["id"]}, {"$set": {
+            "status": new_status,
+            "downloaded_by_user_id": "", "downloaded_by_name": "", "downloaded_at": "",
+            "downloaded_olo": "", "downloaded_note_wr": "", "downloaded_note_id": "",
+            "updated_at": now_iso,
+        }})
+        await add_serial_event(s["serial"], "manual_update", user["id"], display_name,
+                                note_id=note_id, note_wr=doc.get("wr", ""),
+                                extra={"reason": "unsync_note"})
+        restored.append(s["serial"])
+    await db.notes.update_one({"id": note_id},
+                              {"$set": {"synced": False, "synced_at": "", "updated_at": now_iso}})
+    if restored:
+        wr = doc.get("wr", "")
+        await notify_magazzino("note_unsync",
+                               f"{display_name} ha annullato lo scarico di {len(restored)} seriale/i sulla WR {wr}",
+                               from_user_name=display_name, note_id=note_id, note_wr=wr, serials=restored)
+    fresh = await db.notes.find_one({"id": note_id}, {"_id": 0})
+    return {"unsynced": len(restored), "serials": restored, "note": fresh}
+
+
 # ---------- Notifications ----------
 # ---------- Team (compagno di squadra giornaliero) ----------
 @api_router.get("/team/today")
@@ -1429,6 +1460,68 @@ async def bulk_delete_serials(req: BulkDeleteRequest, user: dict = Depends(get_m
         try: await _check_threshold(tag, actor_name=actor_name)
         except Exception: pass
     return {"deleted": r.deleted_count}
+
+
+class BulkUpdateSerials(BaseModel):
+    ids: List[str]
+    tipo: Optional[str] = None
+    assigned_to_user_id: Optional[str] = None
+
+
+@api_router.post("/inventory/serials/bulk-update")
+async def bulk_update_serials(req: BulkUpdateSerials, user: dict = Depends(get_magazzino_or_admin)):
+    """Modifica massiva di tag e/o assegnazione per i seriali selezionati."""
+    if not req.ids:
+        return {"updated": 0}
+    actor_name = user.get("name") or user.get("email") or ""
+    now = datetime.now(timezone.utc).isoformat()
+    set_assignment = req.assigned_to_user_id is not None
+    assignee = None
+    if set_assignment and req.assigned_to_user_id:
+        assignee = await db.users.find_one({"id": req.assigned_to_user_id})
+        if not assignee:
+            raise HTTPException(status_code=400, detail="Utente assegnatario inesistente")
+    tag = req.tipo.strip() if req.tipo is not None else None
+    affected_tags = set()
+    updated = 0
+    docs = await db.serials.find({"id": {"$in": req.ids}}, {"_id": 0}).to_list(len(req.ids) + 1)
+    for d in docs:
+        updates = {}
+        event_type = None
+        event_extra = {}
+        if tag is not None:
+            updates["tipo"] = tag
+            if d.get("tipo"): affected_tags.add(d["tipo"])
+            if tag: affected_tags.add(tag)
+        if set_assignment and d.get("status") != "scaricato":
+            if req.assigned_to_user_id:
+                updates["assigned_to_user_id"] = assignee["id"]
+                updates["assigned_to_name"] = assignee.get("name") or assignee.get("email") or ""
+                if d.get("status") == "in_stock":
+                    updates["status"] = "assegnato"
+                event_type = "assigned"
+                event_extra = {"to_user_id": assignee["id"], "to_user_name": updates["assigned_to_name"], "bulk": True}
+            else:
+                updates["assigned_to_user_id"] = ""
+                updates["assigned_to_name"] = ""
+                if d.get("status") == "assegnato":
+                    updates["status"] = "in_stock"
+                event_type = "unassigned"
+                event_extra = {"from_user_name": d.get("assigned_to_name", ""), "bulk": True}
+        if not updates:
+            continue
+        updates["updated_at"] = now
+        await db.serials.update_one({"id": d["id"]}, {"$set": updates})
+        if event_type:
+            await add_serial_event(d["serial"], event_type, user["id"], actor_name, extra=event_extra)
+        elif tag is not None:
+            await add_serial_event(d["serial"], "manual_update", user["id"], actor_name,
+                                    extra={"tipo": tag, "bulk": True})
+        updated += 1
+    for t in affected_tags:
+        try: await _check_threshold(t, actor_name=actor_name)
+        except Exception: pass
+    return {"updated": updated}
 
 
 @api_router.post("/inventory/tags/delete")

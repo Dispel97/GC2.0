@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 21 fully verified. Backend 5/5 tests PASS: POST /api/inventory/serials/bulk-update accepts {ids,tipo?,assigned_to_user_id?} — tag-only update, assign (status->assegnato), unassign via empty string (status->in_stock), and 403 for technician. POST /api/notes/{id}/unsync restores scaricato serials to assegnato/in_stock, clears downloaded_note_id, sets note.synced=false, returns unsynced count. Frontend flows all PASS. (A) UNDO ESPLETATO on WR 17467961: undo-espletato-<wr> button correctly ABSENT in limbo state; after clicking status-espletato-<wr>, ESPLETATA badge appears and undo-espletato button becomes visible; clicking undo removes the ESPLETATA badge, hides the undo button, and shows toast 'Espletato annullato — nota tornata normale'. (B) WAREHOUSE BULK: created 3 test serials via UI, wh-bulk-bar appears with '2 selezionati' when 2 rows selected via wh-select-<serial>. Tag update via wh-bulk-tag-input + wh-bulk-apply-tag → toast '2 seriale/i aggiornati (tag)' and both rows show TEST_UI_TAG in Tag column. Assign via wh-bulk-assignee dropdown (Tecnico Test) + wh-bulk-apply-assign → toast '2 seriale/i aggiornati (assegnazione)'. Unassign via value __none__ → rows show 'Non assegnato' and status 'IN STOCK'. Bulk delete button (warehouse-bulk-delete) inside wh-bulk-bar deletes selected serials — toast '3 seriale/i eliminati' and rows removed. All 3 test serials cleaned up.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter21_modifications.py",
+    "/app/test_reports/pytest/iter21.xml"
+  ],
+  "action_items": [
+    "Minor / leftover state: WR 17467961 has cpe='TESTCPE_ITER20_001' left from previous iteration's UI test (backend restored, UI test did not). Warehouse also contains a leftover serial 'TESTCPE_ITER20_001' from iter20 tests. Consider cleaning up if needed.",
+    "Nice-to-have: when the note has no cpe/ont_sfp, the auto-sync path on Espletato is silently skipped (no SYNC ✓ badge). The undo flow still works correctly (unsync returns 0 with 200)."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/App.js is still ~3150 lines — recommend splitting NoteCard, WarehousePage, InstructionsPage into separate modules.",
+    "bulk-update endpoint applies tag change even to 'scaricato' serials but skips assignment change — intentional per spec, but consider documenting in API response (e.g. return skipped_ids).",
+    "undoEspletato swallows unsync errors silently (empty catch block). If /unsync fails but the note is already reverted to limbo, user has no feedback. Consider toast.warning on unsync failure.",
+    "bulkAssign uses empty-string 'assigned_to_user_id' to indicate unassign; a more explicit contract (e.g. dedicated field or explicit null via Optional[str] with a sentinel) would reduce ambiguity — currently relies on 'is not None' check on server."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter21_modifications.py"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin giuseppe97belviso@gmail.com / Mucchetta4! ; tech tecnico.test@gc.it / Test1234!",
+  "seed_data_creation": "Created 3 warehouse serials TESTBULK<ts>0/1/2 during UI test — all deleted via bulk delete. Backend tests create TEST21-* serials and clean them up. WR 17467961 is used for undo test; state restored to limbo (but cpe='TESTCPE_ITER20_001' remains from prior iteration).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New testids: undo-espletato-<wr> (visible only when isDone), wh-bulk-bar, wh-bulk-tag-input, wh-bulk-apply-tag, wh-bulk-assignee (select with '' / '__none__' / user-id), wh-bulk-apply-assign, wh-select-<serial>, wh-select-all. warehouse-bulk-delete now lives inside wh-bulk-bar. New endpoints: POST /api/notes/{id}/unsync (auth), POST /api/inventory/serials/bulk-update (magazzino/admin, 403 for technician; body: {ids, tipo?, assigned_to_user_id?} where empty string on assigned_to_user_id means unassign, None/missing means don't touch assignment). Approved users list endpoint is /api/users/approved (NOT /api/users which is 404).",
+  "rca of the issue": "N/A — no issues found."
+}

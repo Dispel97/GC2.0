@@ -1180,6 +1180,18 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
     } catch (e) { toast.error(errorText(e)); }
   };
 
+  const undoEspletato = async () => {
+    try {
+      await axios.patch(`${API}/notes/${note.id}`, { note_type: "limbo", status: "limbo" });
+      try {
+        const r = await axios.post(`${API}/notes/${note.id}/unsync`);
+        if (r.data?.unsynced) toast.message(`${r.data.unsynced} seriale/i ripristinati in magazzino`);
+      } catch (_) {}
+      toast.success("Espletato annullato — nota tornata normale");
+      onChanged?.();
+    } catch (e) { toast.error(errorText(e)); }
+  };
+
   const currentType = note.note_type || note.status || "limbo";
   const isSuspended = currentType === "sospeso";
   const isFault = currentType === "guasto";
@@ -1246,6 +1258,11 @@ function NoteCard({ note, onChanged, defaultOpen, selected, onToggleSelect, onOp
                 <RefreshCw size={14} /> Migrazione
               </button>
             </div>
+            {isDone && (
+              <button onClick={undoEspletato} className="rounded-full px-3 py-2 text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 inline-flex items-center gap-2" data-testid={`undo-espletato-${note.wr}`}>
+                <RotateCcw size={14} /> Annulla espletato
+              </button>
+            )}
             {isSuspended && (
               <button onClick={sendSuspendMail} className="rounded-full px-3 py-2 text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 inline-flex items-center gap-2" data-testid={`suspend-mail-${note.wr}`}>
                 <Mail size={14} /> Mail sospensione
@@ -1993,6 +2010,8 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
     const ids = serials.map((s) => s.id);
     setSelectedIds((prev) => prev.size === ids.length ? new Set() : new Set(ids));
   };
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkAssignee, setBulkAssignee] = useState("");
   const bulkDelete = async () => {
     if (!selectedIds.size) return;
     if (!window.confirm(`Eliminare ${selectedIds.size} seriale/i selezionato/i?`)) return;
@@ -2001,6 +2020,23 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
       toast.success(`${r.data.deleted} seriale/i eliminati`);
       setSelectedIds(new Set());
       fetchSerials(); fetchTags();
+    } catch (e) { toast.error(errorText(e)); }
+  };
+  const bulkSetTag = async () => {
+    if (!selectedIds.size) return;
+    try {
+      const r = await axios.post(`${API}/inventory/serials/bulk-update`, { ids: Array.from(selectedIds), tipo: bulkTag.trim() });
+      toast.success(`${r.data.updated} seriale/i aggiornati (tag)`);
+      setBulkTag(""); fetchSerials(); fetchTags();
+    } catch (e) { toast.error(errorText(e)); }
+  };
+  const bulkAssign = async () => {
+    if (!selectedIds.size || !bulkAssignee) return;
+    const assignVal = bulkAssignee === "__none__" ? "" : bulkAssignee;
+    try {
+      const r = await axios.post(`${API}/inventory/serials/bulk-update`, { ids: Array.from(selectedIds), assigned_to_user_id: assignVal });
+      toast.success(`${r.data.updated} seriale/i aggiornati (assegnazione)`);
+      setBulkAssignee(""); fetchSerials();
     } catch (e) { toast.error(errorText(e)); }
   };
   const deleteTag = async (tag) => {
@@ -2180,12 +2216,29 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
           <button onClick={exportCSV} className="rounded-full px-3 py-2 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 inline-flex items-center gap-1.5" data-testid="warehouse-export-csv">
             <Download size={14} /> Export CSV
           </button>
-          {selectedIds.size > 0 && (
-            <button onClick={bulkDelete} className="rounded-full px-3 py-2 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1.5 animate-pulse" data-testid="warehouse-bulk-delete">
-              <Trash2 size={14} /> Elimina {selectedIds.size} selezionati
-            </button>
-          )}
         </div>
+        {selectedIds.size > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-3 py-2" data-testid="wh-bulk-bar">
+            <span className="text-xs font-semibold text-pink-800">{selectedIds.size} selezionati</span>
+            <div className="inline-flex items-center gap-1">
+              <input list="wh-bulk-tags" value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag…"
+                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs w-28" data-testid="wh-bulk-tag-input" />
+              <datalist id="wh-bulk-tags">{tags.map((t) => <option key={t} value={t} />)}</datalist>
+              <button onClick={bulkSetTag} className="rounded-full px-3 py-1.5 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800" data-testid="wh-bulk-apply-tag">Applica tag</button>
+            </div>
+            <div className="inline-flex items-center gap-1">
+              <select value={bulkAssignee} onChange={(e) => setBulkAssignee(e.target.value)} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs" data-testid="wh-bulk-assignee">
+                <option value="">— Assegnatario —</option>
+                <option value="__none__">Rimuovi assegnazione</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+              </select>
+              <button onClick={bulkAssign} className="rounded-full px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700" data-testid="wh-bulk-apply-assign">Assegna</button>
+            </div>
+            <button onClick={bulkDelete} className="ml-auto rounded-full px-3 py-1.5 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1.5" data-testid="warehouse-bulk-delete">
+              <Trash2 size={14} /> Elimina {selectedIds.size}
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center gap-2 text-slate-500 text-sm p-4"><Loader2 className="animate-spin" size={16} /> Caricamento…</div>
         ) : serials.length === 0 ? (
