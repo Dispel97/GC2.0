@@ -995,6 +995,9 @@ async def delete_photo(note_id: str, photo_id: str, user: dict = Depends(get_cur
 
 @api_router.get("/files")
 async def download_file(path: str = Query(...)):
+    # Guard: only serve objects inside this app's storage prefix (anti path-traversal)
+    if ".." in path or not path.startswith(APP_NAME + "/"):
+        raise HTTPException(status_code=404, detail="File non trovato")
     try:
         data, ct = get_object(path)
     except Exception:
@@ -1931,6 +1934,41 @@ async def delete_instruction_image(iid: str, img_id: str, admin: dict = Depends(
         {"$set": {"images": images, "updated_at": datetime.now(timezone.utc).isoformat()}},
     )
     return {"images": images}
+
+
+@api_router.post("/instructions/{iid}/file")
+async def upload_instruction_file(iid: str, file: UploadFile = File(...),
+                                  admin: dict = Depends(get_current_admin)):
+    doc = await db.instructions.find_one({"id": iid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Riquadro non trovato")
+    ext = (file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "bin").lower()
+    path = f"{APP_NAME}/instructions/{iid}/files/{uuid.uuid4()}.{ext}"
+    data = await file.read()
+    put_object(path, data, file.content_type or "application/octet-stream")
+    f = {"id": str(uuid.uuid4()), "storage_path": path,
+         "filename": file.filename or f"file.{ext}",
+         "content_type": file.content_type or "application/octet-stream",
+         "size": len(data)}
+    files = doc.get("files", []) + [f]
+    await db.instructions.update_one(
+        {"id": iid},
+        {"$set": {"files": files, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"files": files}
+
+
+@api_router.delete("/instructions/{iid}/file/{file_id}")
+async def delete_instruction_file(iid: str, file_id: str, admin: dict = Depends(get_current_admin)):
+    doc = await db.instructions.find_one({"id": iid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Riquadro non trovato")
+    files = [f for f in doc.get("files", []) if f.get("id") != file_id]
+    await db.instructions.update_one(
+        {"id": iid},
+        {"$set": {"files": files, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"files": files}
 
 
 app.include_router(api_router)

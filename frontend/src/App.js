@@ -2010,6 +2010,12 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
     const ids = serials.map((s) => s.id);
     setSelectedIds((prev) => prev.size === ids.length ? new Set() : new Set(ids));
   };
+  const selectByTag = () => {
+    if (!tipoFilter) return;
+    const ids = serials.filter((s) => (s.tipo || "") === tipoFilter).map((s) => s.id);
+    setSelectedIds(new Set(ids));
+    toast.success(`${ids.length} seriale/i "${tipoFilter}" selezionati`);
+  };
   const [bulkTag, setBulkTag] = useState("");
   const [bulkAssignee, setBulkAssignee] = useState("");
   const bulkDelete = async () => {
@@ -2208,6 +2214,11 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
             <option value="">Tutti i tag</option>
             {tags.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
+          {tipoFilter && (
+            <button onClick={selectByTag} className="rounded-full px-3 py-2 text-xs font-semibold bg-brand-pink/10 text-brand-pink brand-pink hover:bg-brand-pink/20 inline-flex items-center gap-1.5" data-testid="wh-select-tag">
+              <CheckCircle2 size={14} /> Seleziona tutti "{tipoFilter}"
+            </button>
+          )}
           {tipoFilter && (
             <button onClick={() => deleteTag(tipoFilter)} className="rounded-full px-3 py-2 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 inline-flex items-center gap-1.5" data-testid="warehouse-delete-tag">
               <Trash2 size={14} /> Elimina tag "{tipoFilter}"
@@ -2752,6 +2763,7 @@ function InstructionsPage() {
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [dragIndex, setDragIndex] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
+  const [uploadingFileId, setUploadingFileId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2789,6 +2801,20 @@ function InstructionsPage() {
   };
   const removeImage = async (id, imgId) => {
     try { await axios.delete(`${API}/instructions/${id}/image/${imgId}`); load(); }
+    catch (e) { toast.error(errorText(e)); }
+  };
+  const uploadFile = async (id, file) => {
+    if (!file) return;
+    setUploadingFileId(id);
+    try {
+      const fd = new FormData(); fd.append("file", file);
+      await axios.post(`${API}/instructions/${id}/file`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      toast.success("File allegato"); load();
+    } catch (e) { toast.error(errorText(e)); }
+    finally { setUploadingFileId(null); }
+  };
+  const removeFile = async (id, fileId) => {
+    try { await axios.delete(`${API}/instructions/${id}/file/${fileId}`); load(); }
     catch (e) { toast.error(errorText(e)); }
   };
   const onDrop = async (targetIdx) => {
@@ -2880,6 +2906,27 @@ function InstructionsPage() {
                     <label className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full px-3 py-1.5 cursor-pointer" data-testid={`instruction-img-add-${it.id}`}>
                       {uploadingId === it.id ? <Loader2 className="animate-spin" size={13} /> : <ImageIcon size={13} />} Aggiungi immagine
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; uploadImage(it.id, f); }} />
+                    </label>
+                  )}
+                  {(it.files?.length > 0) && (
+                    <div className="mt-3 space-y-1.5" data-testid={`instruction-files-${it.id}`}>
+                      {it.files.map((f) => (
+                        <div key={f.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                          <FileText size={14} className="text-slate-500 shrink-0" />
+                          <a href={`${API}/files?path=${encodeURIComponent(f.storage_path)}`} download={f.filename} target="_blank" rel="noopener noreferrer"
+                            className="text-xs font-medium text-slate-700 hover:text-brand-pink truncate flex-1" data-testid={`instruction-file-download-${f.id}`}>{f.filename}</a>
+                          <a href={`${API}/files?path=${encodeURIComponent(f.storage_path)}`} download={f.filename} className="text-slate-500 hover:text-brand-pink shrink-0" title="Scarica"><Download size={14} /></a>
+                          {isAdmin && (
+                            <button onClick={() => removeFile(it.id, f.id)} className="text-red-500 hover:text-red-700 shrink-0" data-testid={`instruction-file-remove-${f.id}`}><X size={13} /></button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isAdmin && (
+                    <label className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full px-3 py-1.5 cursor-pointer" data-testid={`instruction-file-add-${it.id}`}>
+                      {uploadingFileId === it.id ? <Loader2 className="animate-spin" size={13} /> : <Upload size={13} />} Allega file
+                      <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; uploadFile(it.id, f); }} />
                     </label>
                   )}
                 </>

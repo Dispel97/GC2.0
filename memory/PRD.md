@@ -16,7 +16,12 @@ Web app che automatizza la generazione delle note tecniche OpenFiber a partire d
 
 ## Implemented (as of 12 Feb 2026)
 
-### Iteration 21 (14 Jun 2026) — Annulla Espletato + modifica massiva magazzino
+### Iteration 22 (14 Jun 2026) — Selezione per tag magazzino + allegati file Istruzioni
+- **Magazzino — selezione per tag**: con un tag attivo nel filtro (`warehouse-tipo-filter`) compare `wh-select-tag` che seleziona in un tap tutti i seriali di quel tag, pronti per la modifica massiva (tag/assegnazione/eliminazione).
+- **Istruzioni — allegati file scaricabili da tutti**: gli admin allegano file ai riquadri (`POST/DELETE /api/instructions/{id}/file`); ogni ruolo (admin/magazzino/tecnico) vede e scarica i file via `GET /api/files?path=...` (endpoint pubblico). Testid: `instruction-file-add/-download/-remove`.
+- **Hardening**: `GET /api/files` ora limita i download al prefisso del bucket dell'app (`openfiber-notes/`) e blocca path-traversal.
+
+ (14 Jun 2026) — Annulla Espletato + modifica massiva magazzino
 - **Annulla Espletato**: sulla nota espletata compare `undo-espletato-<wr>` che riporta la nota allo stato normale (limbo) e, se era stata sincronizzata per errore, chiama `POST /api/notes/{id}/unsync` ripristinando i seriali scaricati (status → assegnato/in_stock, azzerati i campi downloaded_*, `synced=false`).
 - **Magazzino — modifica massiva**: selezione multipla seriali → barra `wh-bulk-bar` con: cambio TAG (`wh-bulk-tag-input` + `wh-bulk-apply-tag`), assegnazione/rimozione assegnazione (`wh-bulk-assignee` + `wh-bulk-apply-assign`), ed eliminazione. Endpoint `POST /api/inventory/serials/bulk-update` `{ids, tipo?, assigned_to_user_id?}` (magazzino/admin, 403 per tecnico; `assigned_to_user_id=""` = rimuovi assegnazione).
 

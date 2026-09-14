@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 22 fully verified. Backend 7/7 pytest PASS: (a) POST /api/instructions/{id}/file — admin upload succeeds and returns files[] with id/filename/storage_path/content_type/size; (b) POST same endpoint as technician returns 403; (c) GET /api/instructions returns 'files' array for both admin and technician; (d) GET /api/files?path=... is public (no Authorization header) and returns 200 + exact bytes; (e) DELETE /api/instructions/{id}/file/{fileId} returns 403 for tech and 200 for admin (file removed from list). Frontend E2E via Playwright PASS: (WAREHOUSE) created 3 serials with tag TESTITER22_x; selecting the tag in warehouse-tipo-filter revealed the wh-select-tag button; click populated wh-bulk-bar with '3 selezionati' (all rows), then wh-bulk-tag-input + wh-bulk-apply-tag renamed the tag (verified by re-selecting new tag and getting 3 selected again), and warehouse-bulk-delete inside wh-bulk-bar cleaned them up. (ISTRUZIONI) admin uploaded a .txt via instruction-file-add-<id>, file appeared in instruction-files-<id> with instruction-file-download-<fileId> href pointing to /api/files?path=openfiber-notes/instructions/<id>/files/... — fetch returned HTTP 200; instruction-file-remove-<fileId> visible for admin. After logout+tech login: instruction-file-download-<fileId> present and download returns HTTP 200, but instruction-file-add-<id> is ABSENT and instruction-file-remove-<fileId> is ABSENT. Cleanup: admin removed the uploaded file.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter22_modifications.py",
+    "/app/test_reports/pytest/iter22.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "/app/frontend/src/App.js is ~3197 lines — continue to grow; splitting WarehousePage and InstructionsPage into separate modules is overdue.",
+    "The /api/files endpoint is intentionally public per spec, but there is no path sanitisation visible on the endpoint call site — consider validating that the requested storage_path is within an allowed prefix (e.g. APP_NAME/) to prevent arbitrary path traversal on the object store bucket.",
+    "InstructionsPage.uploadFile does not restrict client-side file size/type; large uploads will be attempted synchronously with no progress UI. Consider a maxSize guard and content-type allowlist.",
+    "delete_instruction_file removes the metadata entry but does NOT delete the object from object storage — orphan blobs will accumulate. Consider best-effort delete_object() on remove."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter22_modifications.py",
+    "/app/test_reports/iteration_22.json"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin giuseppe97belviso@gmail.com / Mucchetta4! ; tech tecnico.test@gc.it / Test1234!",
+  "seed_data_creation": "Created 3 warehouse serials with tag TESTITER22_<ts> via UI — all cleaned up via wh-bulk-bar > warehouse-bulk-delete. Uploaded 1 .txt file to an existing instruction card ('Config ONT') and removed it after tech verification. Backend pytest creates + deletes an instruction card 'TEST22_<uuid>'.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New backend endpoints: POST /api/instructions/{id}/file (multipart 'file', admin-only, 403 for tech, returns {files: [...]}), DELETE /api/instructions/{id}/file/{fileId} (admin-only), GET /api/instructions now returns 'files' array to all roles, GET /api/files?path=... is PUBLIC (no auth). New frontend testids: wh-select-tag (only rendered when tipoFilter is set), instruction-file-add-<id> (label wrapping hidden input[type=file]), instruction-files-<id> container, instruction-file-download-<fileId> (anchor href = API/files?path=...), instruction-file-remove-<fileId> (admin only). Logout button data-testid does not exist — use text 'Esci' button. wh-bulk-bar remains from iter21.",
+  "rca of the issue": "N/A — no issues found."
+}
