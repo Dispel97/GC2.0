@@ -1907,6 +1907,11 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("in_stock");  // default: home = liberi
   const [tipoFilter, setTipoFilter] = useState("");
+  const [bulkSearchOpen, setBulkSearchOpen] = useState(false);
+  const [bulkSearchText, setBulkSearchText] = useState("");
+  const [bulkSearchResults, setBulkSearchResults] = useState(null);
+  const [bulkAssignUser, setBulkAssignUser] = useState("");
+  const [bulkSearching, setBulkSearching] = useState(false);
   const [inputSerial, setInputSerial] = useState("");
   const [inputTipo, setInputTipo] = useState("");
   const [bulkText, setBulkText] = useState("");
