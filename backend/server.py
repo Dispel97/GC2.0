@@ -1169,6 +1169,23 @@ async def serial_history(sid: str, user: dict = Depends(get_magazzino_or_admin))
     return {"serial": doc, "events": events}
 
 
+class BulkSearchSerials(BaseModel):
+    serials: List[str]
+
+
+@api_router.post("/inventory/serials/search-bulk")
+async def search_serials_bulk(req: BulkSearchSerials, user: dict = Depends(get_magazzino_or_admin)):
+    """Cerca più seriali in blocco con corrispondenza ESATTA (non 'contiene'),
+    utile quando i seriali condividono un prefisso comune."""
+    wanted = [s.strip() for s in req.serials if s.strip()]
+    if not wanted:
+        return {"found": [], "not_found": []}
+    docs = await db.serials.find({"serial": {"$in": wanted}}, {"_id": 0}).to_list(len(wanted) + 1)
+    found_serials = {d["serial"] for d in docs}
+    not_found = [s for s in wanted if s not in found_serials]
+    return {"found": docs, "not_found": not_found}
+
+
 @api_router.get("/inventory/tags")
 async def list_tags(user: dict = Depends(get_magazzino_or_admin)):
     tags = await db.serials.distinct("tipo")
