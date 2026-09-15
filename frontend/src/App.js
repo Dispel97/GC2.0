@@ -2021,6 +2021,20 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
     setSelectedIds(new Set(ids));
     toast.success(`${ids.length} seriale/i "${tipoFilter}" selezionati`);
   };
+  const runBulkSearch = async () => {
+    const list = bulkSearchText.split(/[\n,;\s]+/).map((s) => s.trim()).filter(Boolean);
+    if (!list.length) { toast.error("Incolla almeno un seriale"); return; }
+    setBulkSearching(true);
+    try {
+      const r = await axios.post(`${API}/inventory/serials/search-bulk`, { serials: list });
+      const ids = r.data.found.map((s) => s.id);
+      setSelectedIds(new Set(ids));
+      toast.success(`${ids.length} seriale/i trovati e selezionati`);
+      if (r.data.not_found.length) toast.message(`Non trovati: ${r.data.not_found.join(", ")}`);
+      setBulkSearchOpen(false); setBulkSearchText("");
+    } catch (e) { toast.error(errorText(e)); }
+    finally { setBulkSearching(false); }
+  };
   const [bulkTag, setBulkTag] = useState("");
   const [bulkAssignee, setBulkAssignee] = useState("");
   const bulkDelete = async () => {
