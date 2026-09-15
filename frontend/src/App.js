@@ -2251,6 +2251,18 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
             <Search size={14} /> Ricerca multipla
           </button>
         </div>
+{bulkSearchOpen && (
+          <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3" data-testid="wh-bulk-search-panel">
+            <div className="text-sm font-semibold text-slate-800">Cerca più seriali insieme (selezione automatica)</div>
+            <textarea value={bulkSearchText} onChange={(e) => setBulkSearchText(e.target.value)} rows={4}
+              placeholder="Incolla qui i seriali, uno per riga"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-pink" />
+            <button onClick={runBulkSearch} disabled={bulkSearching}
+              className="rounded-full px-4 py-2 text-xs font-semibold bg-brand-pink text-white brand-pink-bg hover:opacity-90 inline-flex items-center gap-2 disabled:opacity-60">
+              {bulkSearching ? <Loader2 className="animate-spin" size={14} /> : <Search size={14} />} Cerca e seleziona
+            </button>
+          </div>
+        )}
         {selectedIds.size > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-3 py-2" data-testid="wh-bulk-bar">
             <span className="text-xs font-semibold text-pink-800">{selectedIds.size} selezionati</span>
