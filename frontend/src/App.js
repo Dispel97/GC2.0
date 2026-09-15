@@ -2246,6 +2246,10 @@ function WarehousePage({ onOpenAdmin, showAdminBtn }) {
           <button onClick={exportCSV} className="rounded-full px-3 py-2 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 inline-flex items-center gap-1.5" data-testid="warehouse-export-csv">
             <Download size={14} /> Export CSV
           </button>
+            <button onClick={() => setBulkSearchOpen(!bulkSearchOpen)}
+            className="rounded-full px-3 py-2 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 inline-flex items-center gap-1.5" data-testid="wh-bulk-search-toggle">
+            <Search size={14} /> Ricerca multipla
+          </button>
         </div>
         {selectedIds.size > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-3 py-2" data-testid="wh-bulk-bar">
