@@ -3009,8 +3009,8 @@ function AppContent() {
     if (base.has(mk)) base.delete(mk); else base.add(mk);
     return base;
   });
-  const isDayOpen = (dk) => !closedDays.has(dk);
-  const toggleDay = (dk) => setClosedDays((prev) => {
+  const isDayOpen = (dk) => openDays.has(dk);
+  const toggleDay = (dk) => setOpenDays((prev) => {
     const s = new Set(prev);
     if (s.has(dk)) s.delete(dk); else s.add(dk);
     return s;
