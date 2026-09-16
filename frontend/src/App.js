@@ -2989,7 +2989,9 @@ function AppContent() {
   const [scanTarget, setScanTarget] = useState(null);
   const [page, setPage] = useState(user?.role === "magazzino" ? "warehouse" : "notes");
   const [openMonths, setOpenMonths] = useState(null); // Set of open month keys; null => default (current month only)
-  const [openDays, setOpenDays] = useState(() => new Set());
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [openDays, setOpenDays] = useState(() => new Set([todayIso]));
+
   const [recipients, setRecipients] = useState(RECIPIENTS);
   const initialLoad = useRef(true);
 
