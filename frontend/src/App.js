@@ -2786,6 +2786,61 @@ function RecipientsEditor() {
   );
 }
 
+// ---------- Giacenza personale (tecnico) ----------
+function MyStockPanel() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [returningId, setReturningId] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const r = await axios.get(`${API}/inventory/my-assigned`); setItems(r.data || []); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const returnItem = async (id, serial) => {
+    if (!window.confirm(`Restituire il modem ${serial} al magazzino?`)) return;
+    setReturningId(id);
+    try {
+      await axios.post(`${API}/inventory/serials/${id}/return`);
+      toast.success(`${serial} restituito al magazzino`);
+      load();
+    } catch (e) { toast.error(errorText(e)); }
+    finally { setReturningId(null); }
+  };
+
+  if (!loading && items.length === 0) return null;
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl card-shadow p-4 sm:p-5" data-testid="my-stock-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <Package size={18} className="brand-pink" />
+        <h2 className="text-lg font-display font-bold text-slate-900">La mia giacenza</h2>
+        {!loading && <span className="text-xs text-slate-500 ml-1">{items.length} seriale/i assegnati</span>}
+      </div>
+      {loading ? (
+        <div className="flex items-center gap-2 text-slate-500 text-sm"><Loader2 className="animate-spin" size={16} /> Caricamento…</div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((s) => (
+            <div key={s.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2" data-testid={`my-stock-item-${s.serial}`}>
+              <span className="font-mono font-semibold text-sm text-slate-900">{s.serial}</span>
+              {s.tipo && <span className="text-[10px] font-bold bg-pink-100 text-pink-800 px-1.5 py-0.5 rounded">{s.tipo}</span>}
+              <button onClick={() => returnItem(s.id, s.serial)} disabled={returningId === s.id}
+                className="ml-auto rounded-full px-3 py-1.5 text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 inline-flex items-center gap-1.5 disabled:opacity-60"
+                data-testid={`my-stock-return-${s.serial}`}>
+                {returningId === s.id ? <Loader2 className="animate-spin" size={12} /> : <RotateCcw size={12} />} Restituisci
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ---------- Pagina Istruzioni Configurazioni (#6) ----------
 function InstructionsPage() {
   const { user } = useAuth();
@@ -3098,6 +3153,8 @@ function AppContent() {
       ) : (
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6" data-testid="main-content">
         <PdfUploader onParsed={handleParsed} />
+
+        <MyStockPanel />
 
         <StatsPanel notes={filteredNotes} onReset={resetMonth} />
 
