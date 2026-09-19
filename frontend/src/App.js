@@ -3097,6 +3097,18 @@ function AppContent() {
     return () => clearTimeout(t);
   }, [fetchNotes]);
 
+const reorderNotesInDay = async (dayNotes, fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
+    const reordered = [...dayNotes];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setNotes((prev) => {
+      const others = prev.filter((n) => !dayNotes.some((d) => d.id === n.id));
+      return [...others, ...reordered];
+    });
+    try { await axios.post(`${API}/notes/reorder`, { ids: reordered.map((n) => n.id) }); }
+    catch (e) { toast.error(errorText(e)); fetchNotes(); }
+  }; 
   const handleParsed = async () => {
     const r = await axios.get(`${API}/notes`);
     setNotes(r.data || []);
