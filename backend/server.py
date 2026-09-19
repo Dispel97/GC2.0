@@ -825,7 +825,7 @@ async def list_notes(search: str = Query(''), user: dict = Depends(get_current_u
     if search:
         rx = {"$regex": re.escape(search), "$options": "i"}
         q = {"$and": [q, {"$or": [{"wr": rx}, {"cliente": rx}, {"olo": rx}]}]}
-    docs = await db.notes.find(q, {"_id": 0}).sort("created_at", -1).to_list(2000)
+    docs = await db.notes.find(q, {"_id": 0}).sort([("order", 1), ("created_at", -1)]).to_list(2000)
     # Legacy migration: fill note_type/note_date defaults
     for d in docs:
         if not d.get('note_type'):
