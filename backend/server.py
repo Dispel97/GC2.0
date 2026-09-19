@@ -357,6 +357,7 @@ class Note(BaseModel):
     status: str = 'limbo'  # legacy alias; kept for backward compat with UI toggles
     suspend_reason: str = ''
     note_date: str = ''  # ISO date (YYYY-MM-DD), user-editable; default = date of creation
+    order: int = 0  # manual drag-and-drop order within the same day
     synced: bool = False
     synced_at: str = ''
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -957,6 +958,19 @@ async def delete_note(note_id: str, user: dict = Depends(get_current_user)):
     return {"deleted": res.deleted_count}
 
 
+class NoteReorder(BaseModel):
+    ids: List[str]
+
+
+@api_router.post("/notes/reorder")
+async def reorder_notes(req: NoteReorder, user: dict = Depends(get_current_user)):
+    now = datetime.now(timezone.utc).isoformat()
+    for idx, nid in enumerate(req.ids):
+        await db.notes.update_one(
+            {"id": nid, "$or": [{"user_id": user["id"]}, {"shared_with": user["id"]}]},
+            {"$set": {"order": idx, "updated_at": now}}
+        )
+    return {"ok": True, "count": len(req.ids)}
 @api_router.post("/notes/bulk-delete")
 async def bulk_delete_notes(req: BulkDeleteRequest, user: dict = Depends(get_current_user)):
     if not req.ids:
