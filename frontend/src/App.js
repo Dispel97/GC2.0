@@ -3259,10 +3259,17 @@ const reorderNotesInDay = async (dayNotes, fromIdx, toIdx) => {
                                 </button>
                                 {dopen && (
                                   <div className="space-y-3">
-                                    {dayNotes.map((n) => (
-                                      <NoteCard key={n.id} note={n} defaultOpen={lastCreatedIds.includes(n.id)}
-                                        onChanged={fetchNotes} selected={selectedIds.includes(n.id)} onToggleSelect={toggleSelect}
-                                        onOpenScanner={openScanner} />
+                                    {dayNotes.map((n, nIdx) => (
+                                      <div key={n.id}
+                                        draggable
+                                        onDragStart={() => setDragNoteIndex(nIdx)}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={() => { reorderNotesInDay(dayNotes, dragNoteIndex, nIdx); setDragNoteIndex(null); }}
+                                        className="cursor-move">
+                                        <NoteCard note={n} defaultOpen={lastCreatedIds.includes(n.id)}
+                                          onChanged={fetchNotes} selected={selectedIds.includes(n.id)} onToggleSelect={toggleSelect}
+                                          onOpenScanner={openScanner} />
+                                      </div>
                                     ))}
                                   </div>
                                 )}
