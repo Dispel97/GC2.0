@@ -3046,6 +3046,7 @@ function AppContent() {
   const [openMonths, setOpenMonths] = useState(null); // Set of open month keys; null => default (current month only)
   const todayIso = new Date().toISOString().slice(0, 10);
   const [openDays, setOpenDays] = useState(() => new Set([todayIso]));
+  const [dragNoteIndex, setDragNoteIndex] = useState(null);
 
   const [recipients, setRecipients] = useState(RECIPIENTS);
   const initialLoad = useRef(true);
